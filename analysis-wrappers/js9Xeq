@@ -15,6 +15,13 @@ fi
 # JS9_HOST		host ip of client
 # JS9_ID		id (from js9 div) of client
 
+## Support for transparent loadproxy of local files
+## If set, and loadproxy is called on a URL matching {JS9_LOCAL_URL_PREFIX}foo/bar.fits,
+## then we know the original file is available locally as {JS9_LOCAL_FS_PREFIX}foo/bar.fits,
+## and no wget needs to be done
+# JS9_LOCAL_URL_PREFIX
+# JS9_LOCAL_FS_PREFIX
+
 #defaults
 CHANDRA_BINS="500:8000:1875"
 XMM_BINS="400:15000:1825"
@@ -341,6 +348,25 @@ loadproxy)
     quotacheck
     URL=`echo $1 | sed 's/__ampersand__/\&/g'`
     OFILE=`basename "$URL" | sed 's/\?.*//g;s/  *//g;s/%[0-9A-Fa-f][0-9A-Fa-f]//g'`
+    # check if file is local -- try to strip prefix
+    localfile="${URL#$JS9_LOCAL_URL_PREFIX}"
+    pwd >>~/log-js9
+    echo "loadproxy -$URL-$localfile-">>~/log-js9
+    if [ "$localfile" != "$URL" ]; then
+        # if it's a match, make a symlink and return it. Otherwise fall through to normal behaviour
+        localfile="$JS9_LOCAL_FS_PREFIX$localfile"
+        echo "localfile $localfile" >>~/log-js9
+        if [ -f $localfile ]; then
+            if [ -f $OFILE ]; then
+                rm -f $OFILE
+            fi
+            ln -s $localfile $OFILE
+            #cp -L $localfile $OFILE
+            echo "${JS9_WORKDIR}/$OFILE"
+            echo "reporting back ${JS9_WORKDIR}/$OFILE" >>~/log-js9
+            exit 0
+        fi
+    fi
     # hack for google drive
     if [ x"$OFILE" = xuc ]; then
       OFILE="google_"$RANDOM".fits"

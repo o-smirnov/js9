@@ -1064,6 +1064,7 @@ var socketioHandler = function(socket) {
 	// environment, and datapath (for finding data files)
 	myenv = JSON.parse(envs);
 	myenv.JS9_DATAPATH = getDataPath(obj.dataPath);
+	clog('looking for', process.cwd(), obj.fits, myenv.JS9_DATAPATH, myenv)
 	s = getFilePath(obj.fits, myenv.JS9_DATAPATH, myenv);
 	if( !s ){
 	    // did not find file, let js9 take care of it
